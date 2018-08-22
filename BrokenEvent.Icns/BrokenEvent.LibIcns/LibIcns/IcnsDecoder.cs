@@ -2,7 +2,12 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
 using System.Runtime.CompilerServices;
+
+#if _FREEIMAGE
+using FreeImageAPI;
+#endif
 
 namespace BrokenEvent.LibIcns
 {
@@ -287,6 +292,26 @@ namespace BrokenEvent.LibIcns
       0xFF111111,
       0xFF000000
     };
+
+#if _FREEIMAGE
+    static IcnsDecoder()
+    {
+      LoadJ2kImage = LoadWithFreeImage;
+    }
+
+    private static IcnsImage LoadWithFreeImage(IcnsImageParser.IcnsElement element, IcnsType imageType)
+    {
+      using (MemoryStream ms = new MemoryStream(element.data))
+      {
+        FREE_IMAGE_FORMAT format = FREE_IMAGE_FORMAT.FIF_JP2;
+        FIBITMAP fib = FreeImage.LoadFromStream(ms, ref format);
+        Bitmap bmp = FreeImage.GetBitmap(fib);
+        FreeImage.Unload(fib);
+
+        return new IcnsImage(bmp, imageType);
+      }
+    }
+#endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static unsafe void SetPixel(BitmapData data, int x, int y, uint color)

@@ -52,9 +52,11 @@
       // 
       // flowLayoutPanel
       // 
-      this.flowLayoutPanel.Location = new System.Drawing.Point(126, 12);
+      this.flowLayoutPanel.AutoScroll = true;
+      this.flowLayoutPanel.Dock = System.Windows.Forms.DockStyle.Right;
+      this.flowLayoutPanel.Location = new System.Drawing.Point(93, 0);
       this.flowLayoutPanel.Name = "flowLayoutPanel";
-      this.flowLayoutPanel.Size = new System.Drawing.Size(490, 377);
+      this.flowLayoutPanel.Size = new System.Drawing.Size(535, 410);
       this.flowLayoutPanel.TabIndex = 1;
       // 
       // MainForm
@@ -66,7 +68,7 @@
       this.Font = new System.Drawing.Font("Segoe UI", 8.25F);
       this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
       this.Name = "MainForm";
-      this.Text = "Icns tester form";
+      this.Text = "Icns Tester";
       this.ResumeLayout(false);
 
     }
