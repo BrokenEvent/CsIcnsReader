@@ -449,11 +449,13 @@ namespace BrokenEvent.LibIcns
           }
         }
 
-        // TODO: don't skip these when JPEG 2000 support is added:
         if (imageType == IcnsType.ICNS_256x256_32BIT_ARGB_IMAGE ||
             imageType == IcnsType.ICNS_512x512_32BIT_ARGB_IMAGE)
         {
-          result.Add(new IcnsImage(null, imageType));
+          if (LoadJ2kImage == null)
+            result.Add(new IcnsImage(null, imageType));
+          else
+            result.Add(LoadJ2kImage(imageElement, imageType));
           continue;
         }
 
@@ -516,5 +518,10 @@ namespace BrokenEvent.LibIcns
       }
       return result;
     }
+
+    /// <summary>
+    /// Client may have different j2k encoder, so callback method is used.
+    /// </summary>
+    public static Func<IcnsImageParser.IcnsElement, IcnsType, IcnsImage> LoadJ2kImage;
   }
 }

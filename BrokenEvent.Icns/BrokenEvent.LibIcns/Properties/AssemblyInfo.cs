@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("BrokenEvent.LibIcns")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("BrokenEvent")]
 [assembly: AssemblyProduct("BrokenEvent.LibIcns")]
-[assembly: AssemblyCopyright("Copyright ©  2015")]
+[assembly: AssemblyCopyright("Copyright © 2015, BrokenEvent")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
