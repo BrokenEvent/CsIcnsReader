@@ -54,7 +54,7 @@ namespace BrokenEvent.LibIcns
       return new IcnsHeader(Magic, FileSize);
     }
 
-    internal class IcnsElement
+    public class IcnsElement
     {
       public int type;
       public int elementSize;

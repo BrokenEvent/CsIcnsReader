@@ -11,7 +11,7 @@ using FreeImageAPI;
 
 namespace BrokenEvent.LibIcns
 {
-  internal static class IcnsDecoder
+  public static class IcnsDecoder
   {
     private static readonly uint[] PALETE_4BPP =
     {
