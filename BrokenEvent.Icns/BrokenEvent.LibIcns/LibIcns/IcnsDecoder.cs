@@ -313,6 +313,22 @@ namespace BrokenEvent.LibIcns
     }
 #endif
 
+    // http://www.libpng.org/pub/png/spec/1.2/PNG-Structure.html
+    private static readonly byte[] PNG_SIGNATURE = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+
+    private static IcnsImage TryDecodingPng(IcnsImageParser.IcnsElement element, IcnsType imageType)
+    {
+      if (element.data.Length < PNG_SIGNATURE.Length)
+        return null; // definitely not a valid png
+
+      for (int i = 0; i < PNG_SIGNATURE.Length; i++)
+        if (element.data[i] != PNG_SIGNATURE[i])
+          return null; // not a png
+
+      using (MemoryStream ms = new MemoryStream(element.data))
+        return new IcnsImage((Bitmap)Image.FromStream(ms), imageType); // cast is valid, for PNG it will be Bitmap
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static unsafe void SetPixel(BitmapData data, int x, int y, uint color)
     {
@@ -391,6 +407,20 @@ namespace BrokenEvent.LibIcns
         }
     }
 
+    private static void Decode32BPPImageARGB(IcnsType imageType, byte[] imageData, BitmapData image)
+    {
+      for (int y = 0; y < imageType.Height; y++)
+        for (int x = 0; x < imageType.Width; x++)
+        {
+          uint argb = (((0xffu & imageData[4 * (y * imageType.Width + x) + 0]) << 24) |
+                       ((0xffu & imageData[4 * (y * imageType.Width + x) + 1]) << 16) |
+                       ((0xffu & imageData[4 * (y * imageType.Width + x) + 2]) << 8) |
+                       (0xffu & imageData[4 * (y * imageType.Width + x) + 3]));
+
+          SetPixel(image, x, y, argb);
+        }
+    }
+
     private static void Apply1BPPMask(byte[] maskData, BitmapData image)
     {
       int position;
@@ -433,113 +463,129 @@ namespace BrokenEvent.LibIcns
         }
     }
 
+    private static IcnsImageParser.IcnsElement FindElement(IEnumerable<IcnsImageParser.IcnsElement> elements, int targetType)
+    {
+      foreach (IcnsImageParser.IcnsElement element in elements)
+        if (element.type == targetType)
+          return element;
+
+      return null;
+    }
+
+    private static IcnsImage DecodeImage(IcnsImageParser.IcnsElement imageElement, IcnsImageParser.IcnsElement[] icnsElements)
+    {
+      IcnsType imageType = IcnsType.FindType(imageElement.type, IcnsType.TypeDetails.Mask);
+      if (imageType == null)
+        return null;
+
+      IcnsType maskType = null;
+      IcnsImageParser.IcnsElement maskElement = null;
+
+      if (imageType.Details == IcnsType.TypeDetails.HasMask)
+      {
+        maskType = imageType;
+        maskElement = imageElement;
+      }
+      else if (imageType.Details == IcnsType.TypeDetails.None)
+      {
+        maskType = IcnsType.FindType(imageType.Width, imageType.Height, 8, IcnsType.TypeDetails.Mask);
+        if (maskType != null)
+          maskElement = FindElement(icnsElements, maskType.Type);
+
+        if (maskElement == null)
+        {
+          maskType = IcnsType.FindType(imageType.Width, imageType.Height, 1, IcnsType.TypeDetails.Mask);
+          if (maskType != null)
+            maskElement = FindElement(icnsElements, maskType.Type);
+        }
+      }
+
+      if (imageType.Details == IcnsType.TypeDetails.Compressed ||
+          imageType.Details == IcnsType.TypeDetails.Retina)
+      {
+        IcnsImage result = TryDecodingPng(imageElement, imageType);
+        if (result != null)
+          return result; // png
+
+        if (LoadJ2kImage == null)
+          return null; // couldn't be loaded
+
+        return LoadJ2kImage(imageElement, imageType);
+      }
+
+      int expectedSize = (imageType.Width * imageType.Height * imageType.BitsPerPixel + 7) / 8;
+      byte[] imageData;
+
+      if (imageElement.data.Length < expectedSize)
+      {
+        if (imageType.BitsPerPixel == 32)
+          imageData = Rle24Compression.Decompress(imageType.Width, imageType.Height, imageElement.data);
+        else
+          throw new Exception("Short image data but not a 32 bit compressed type");
+      }
+      else
+        imageData = imageElement.data;
+
+      Bitmap image = new Bitmap(imageType.Width, imageType.Height, PixelFormat.Format32bppArgb);
+      BitmapData bitmapData = image.LockBits(new Rectangle(0, 0, image.Width, image.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+
+      switch (imageType.BitsPerPixel)
+      {
+        case 1:
+          Decode1BPPImage(imageType, imageData, bitmapData);
+          break;
+
+        case 4:
+          Decode4BPPImage(imageType, imageData, bitmapData);
+          break;
+
+        case 8:
+          Decode8BPPImage(imageType, imageData, bitmapData);
+          break;
+
+        case 32:
+          if (imageType.Details == IcnsType.TypeDetails.ARGB)
+            Decode32BPPImageARGB(imageType, imageData, bitmapData);
+          else
+            Decode32BPPImage(imageType, imageData, bitmapData);
+          break;
+
+        default:
+          image.UnlockBits(bitmapData);
+          image.Dispose();
+          throw new NotSupportedException("Unsupported bit depth " + imageType.BitsPerPixel);
+      }
+
+      if (maskElement != null)
+      {
+        switch (maskType.BitsPerPixel)
+        {
+          case 1:
+            Apply1BPPMask(maskElement.data, bitmapData);
+            break;
+          case 8:
+            Apply8BPPMask(maskElement.data, bitmapData);
+            break;
+          default:
+            image.UnlockBits(bitmapData);
+            image.Dispose();
+            throw new NotSupportedException("Unsupport mask bit depth " + maskType.BitsPerPixel);
+        }
+      }
+
+      image.UnlockBits(bitmapData);
+      return new IcnsImage(image, imageType);
+    }
+
     public static List<IcnsImage> DecodeAllImages(IcnsImageParser.IcnsElement[] icnsElements)
     {
       List<IcnsImage> result = new List<IcnsImage>();
 
       for (int i = 0; i < icnsElements.Length; i++)
       {
-        IcnsImageParser.IcnsElement imageElement = icnsElements[i];
-        IcnsType imageType = IcnsType.FindImageType(imageElement.type);
-        if (imageType == null)
-          continue;
-
-        IcnsType maskType;
-        IcnsImageParser.IcnsElement maskElement = null;
-        if (imageType.HasMask)
-        {
-          maskType = imageType;
-          maskElement = imageElement;
-        }
-        else
-        {
-          maskType = IcnsType.Find8BPPMaskType(imageType);
-          if (maskType != null)
-            for (int j = 0; j < icnsElements.Length; j++)
-              if (icnsElements[j].type == maskType.Type)
-              {
-                maskElement = icnsElements[j];
-                break;
-              }
-          if (maskElement == null)
-          {
-            maskType = IcnsType.Find1BPPMaskType(imageType);
-            if (maskType != null)
-              for (int j = 0; j < icnsElements.Length; j++)
-                if (icnsElements[j].type == maskType.Type)
-                {
-                  maskElement = icnsElements[j];
-                  break;
-                }
-          }
-        }
-
-        if (imageType == IcnsType.ICNS_256x256_32BIT_ARGB_IMAGE ||
-            imageType == IcnsType.ICNS_512x512_32BIT_ARGB_IMAGE)
-        {
-          if (LoadJ2kImage == null)
-            result.Add(new IcnsImage(null, imageType));
-          else
-            result.Add(LoadJ2kImage(imageElement, imageType));
-          continue;
-        }
-
-        int expectedSize = (imageType.Width * imageType.Height *
-            imageType.BitsPerPixel + 7) / 8;
-        byte[] imageData;
-
-        if (imageElement.data.Length < expectedSize)
-        {
-          if (imageType.BitsPerPixel == 32)
-            imageData = Rle24Compression.Decompress(imageType.Width, imageType.Height, imageElement.data);
-          else
-            throw new Exception("Short image data but not a 32 bit compressed type");
-        }
-        else
-          imageData = imageElement.data;
-
-        Bitmap image = new Bitmap(imageType.Width, imageType.Height, PixelFormat.Format32bppArgb);
-        BitmapData bitmapData = image.LockBits(new Rectangle(0, 0, image.Width, image.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
-
-        switch (imageType.BitsPerPixel)
-        {
-          case 1:
-            Decode1BPPImage(imageType, imageData, bitmapData);
-            break;
-          case 4:
-            Decode4BPPImage(imageType, imageData, bitmapData);
-            break;
-          case 8:
-            Decode8BPPImage(imageType, imageData, bitmapData);
-            break;
-          case 32:
-            Decode32BPPImage(imageType, imageData, bitmapData);
-            break;
-          default:
-            image.UnlockBits(bitmapData);
-            image.Dispose();
-            throw new NotSupportedException("Unsupported bit depth " + imageType.BitsPerPixel);
-        }
-
-        if (maskElement != null)
-        {
-          switch (maskType.BitsPerPixel)
-          {
-            case 1:
-              Apply1BPPMask(maskElement.data, bitmapData);
-              break;
-            case 8:
-              Apply8BPPMask(maskElement.data, bitmapData);
-              break;
-            default:
-              image.UnlockBits(bitmapData);
-              image.Dispose();
-              throw new NotSupportedException("Unsupport mask bit depth " + maskType.BitsPerPixel);
-          }
-        }
-
-        image.UnlockBits(bitmapData);
-        result.Add(new IcnsImage(image, imageType));
+        IcnsImage image = DecodeImage(icnsElements[i], icnsElements);
+        if (image != null)
+          result.Add(image);
       }
       return result;
     }

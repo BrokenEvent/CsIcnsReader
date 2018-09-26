@@ -9,64 +9,65 @@ namespace BrokenEvent.LibIcns
     private readonly int width;
     private readonly int height;
     private readonly int bitsPerPixel;
-    private readonly bool hasMask;
+    private readonly TypeDetails details;
 
-    public static readonly IcnsType ICNS_16x12_1BIT_IMAGE_AND_MASK = new IcnsType("icm#", 16, 12, 1, true);
-    public static readonly IcnsType ICNS_16x12_4BIT_IMAGE = new IcnsType("icm4", 16, 12, 4, false);
-    public static readonly IcnsType ICNS_16x12_8BIT_IMAGE = new IcnsType("icm8", 16, 12, 8, false);
+    // https://en.wikipedia.org/wiki/Apple_Icon_Image_format
+    public static readonly IcnsType[] ALL_TYPES = new IcnsType[]
+    {
+      // 16x12
+      new IcnsType("icm#", 16, 12, 1, TypeDetails.HasMask),
+      new IcnsType("icm4", 16, 12, 4, TypeDetails.None),
+      new IcnsType("icm8", 16, 12, 8, TypeDetails.None),
+      // 16x16
+      new IcnsType("ics#", 16, 16, 1, TypeDetails.Mask),
+      new IcnsType("ics4", 16, 16, 4, TypeDetails.None),
+      new IcnsType("ics8", 16, 16, 8, TypeDetails.None),
+      new IcnsType("is32", 16, 16, 32, TypeDetails.None),
+      new IcnsType("s8mk", 16, 16, 8, TypeDetails.Mask),
+      new IcnsType("icp4", 16, 16, 32, TypeDetails.Compressed),
+      new IcnsType("ic04", 16, 16, 32, TypeDetails.ARGB),
+      // 18x18
+      new IcnsType("icsb", 18, 18, 32, TypeDetails.ARGB), // not tested
+      // 32x32
+      new IcnsType("ICON", 32, 32, 1, TypeDetails.None),
+      new IcnsType("ICN#", 32, 32, 1, TypeDetails.HasMask),
+      new IcnsType("icl4", 32, 32, 4, TypeDetails.None),
+      new IcnsType("icl8", 32, 32, 8, TypeDetails.None),
+      new IcnsType("il32", 32, 32, 32, TypeDetails.None),
+      new IcnsType("l8mk", 32, 32, 8, TypeDetails.Mask),
+      new IcnsType("icp5", 32, 32, 32, TypeDetails.Compressed),
+      new IcnsType("ic11", 32, 32, 32, TypeDetails.Retina),
+      new IcnsType("ic05", 32, 32, 32, TypeDetails.ARGB),
+      // 36x36      
+      new IcnsType("icsB", 36, 36, 32, TypeDetails.ARGB), // not tested
+      // 48x48
+      new IcnsType("ich#", 48, 48, 1, TypeDetails.Mask),
+      new IcnsType("ich4", 48, 48, 4, TypeDetails.None),
+      new IcnsType("ich8", 48, 48, 8, TypeDetails.None),
+      new IcnsType("ih32", 48, 48, 32, TypeDetails.None),
+      new IcnsType("h8mk", 48, 48, 8, TypeDetails.Mask),
+      // 64x64      
+      new IcnsType("icp6", 64, 64, 32, TypeDetails.Compressed),
+      new IcnsType("ic12", 64, 64, 32, TypeDetails.Retina),
+      // 128x128
+      new IcnsType("it32", 128, 128, 32, TypeDetails.None),
+      new IcnsType("t8mk", 128, 128, 8, TypeDetails.Mask),
+      new IcnsType("ic07", 128, 128, 32, TypeDetails.Compressed),
+      // other
+      new IcnsType("ic08", 256, 256, 32, TypeDetails.Compressed),
+      new IcnsType("ic13", 256, 256, 32, TypeDetails.Retina),
+      new IcnsType("ic09", 512, 512, 32, TypeDetails.Compressed),
+      new IcnsType("ic14", 512, 512, 32, TypeDetails.Retina),
+      new IcnsType("ic10", 1024, 1024, 32, TypeDetails.Retina),
+    };
 
-    public static readonly IcnsType ICNS_16x16_8BIT_MASK = new IcnsType("s8mk", 16, 16, 8, true);
-    public static readonly IcnsType ICNS_16x16_1BIT_IMAGE_AND_MASK = new IcnsType("ics#", 16, 16, 1, true);
-    public static readonly IcnsType ICNS_16x16_4BIT_IMAGE = new IcnsType("ics4", 16, 16, 4, false);
-    public static readonly IcnsType ICNS_16x16_8BIT_IMAGE = new IcnsType("ics8", 16, 16, 8, false);
-    public static readonly IcnsType ICNS_16x16_32BIT_IMAGE = new IcnsType("is32", 16, 16, 32, false);
-
-    public static readonly IcnsType ICNS_32x32_8BIT_MASK = new IcnsType("l8mk", 32, 32, 8, true);
-    public static readonly IcnsType ICNS_32x32_1BIT_IMAGE_AND_MASK = new IcnsType("ICN#", 32, 32, 1, true);
-    public static readonly IcnsType ICNS_32x32_4BIT_IMAGE = new IcnsType("icl4", 32, 32, 4, false);
-    public static readonly IcnsType ICNS_32x32_8BIT_IMAGE = new IcnsType("icl8", 32, 32, 8, false);
-    public static readonly IcnsType ICNS_32x32_32BIT_IMAGE = new IcnsType("il32", 32, 32, 32, false);
-
-    public static readonly IcnsType ICNS_48x48_8BIT_MASK = new IcnsType("h8mk", 48, 48, 8, true);
-    public static readonly IcnsType ICNS_48x48_1BIT_IMAGE_AND_MASK = new IcnsType("ich#", 48, 48, 1, true);
-    public static readonly IcnsType ICNS_48x48_4BIT_IMAGE = new IcnsType("ich4", 48, 48, 4, false);
-    public static readonly IcnsType ICNS_48x48_8BIT_IMAGE = new IcnsType("ich8", 48, 48, 8, false);
-    public static readonly IcnsType ICNS_48x48_32BIT_IMAGE = new IcnsType("ih32", 48, 48, 32, false);
-
-    public static readonly IcnsType ICNS_128x128_8BIT_MASK = new IcnsType("t8mk", 128, 128, 8, true);
-    public static readonly IcnsType ICNS_128x128_32BIT_IMAGE = new IcnsType("it32", 128, 128, 32, false);
-
-    public static readonly IcnsType ICNS_256x256_32BIT_ARGB_IMAGE = new IcnsType("ic08", 256, 256, 32, false);
-
-    public static readonly IcnsType ICNS_512x512_32BIT_ARGB_IMAGE = new IcnsType("ic09", 512, 512, 32, false);
-
-    private static IcnsType[] allImageTypes =
-	  {
-		  ICNS_16x12_1BIT_IMAGE_AND_MASK, ICNS_16x12_4BIT_IMAGE, ICNS_16x12_8BIT_IMAGE,
-		  ICNS_16x16_1BIT_IMAGE_AND_MASK, ICNS_16x16_4BIT_IMAGE, ICNS_16x16_8BIT_IMAGE, ICNS_16x16_32BIT_IMAGE,
-		  ICNS_32x32_1BIT_IMAGE_AND_MASK, ICNS_32x32_4BIT_IMAGE, ICNS_32x32_8BIT_IMAGE, ICNS_32x32_32BIT_IMAGE,
-		  ICNS_48x48_1BIT_IMAGE_AND_MASK, ICNS_48x48_4BIT_IMAGE, ICNS_48x48_8BIT_IMAGE, ICNS_48x48_32BIT_IMAGE,
-		  ICNS_128x128_32BIT_IMAGE,
-		  ICNS_256x256_32BIT_ARGB_IMAGE,
-		  ICNS_512x512_32BIT_ARGB_IMAGE
-	  };
-
-    private static IcnsType[] allMaskTypes =
-	  {
-		  ICNS_16x12_1BIT_IMAGE_AND_MASK,
-		  ICNS_16x16_1BIT_IMAGE_AND_MASK, ICNS_16x16_8BIT_MASK,
-		  ICNS_32x32_1BIT_IMAGE_AND_MASK, ICNS_32x32_8BIT_MASK,
-		  ICNS_48x48_1BIT_IMAGE_AND_MASK, ICNS_48x48_8BIT_MASK,
-		  ICNS_128x128_8BIT_MASK
-	  };
-
-    private IcnsType(string type, int width, int height, int bitsPerPixel, bool hasMask)
+    private IcnsType(string type, int width, int height, int bitsPerPixel, TypeDetails details)
     {
       this.type = TypeAsInt(type);
       this.width = width;
       this.height = height;
       this.bitsPerPixel = bitsPerPixel;
-      this.hasMask = hasMask;
+      this.details = details;
     }
 
     public int Type
@@ -89,51 +90,37 @@ namespace BrokenEvent.LibIcns
       get { return bitsPerPixel; }
     }
 
-    public bool HasMask
+    public TypeDetails Details
     {
-      get { return hasMask; }
-    }
+      get { return details; }
+    }    
 
-    public static IcnsType FindAnyType(int type)
+    public static IcnsType FindType(int type, TypeDetails ignoreDetails)
     {
-      for (int i = 0; i < allImageTypes.Length; i++)
-        if (allImageTypes[i].Type == type)
-          return allImageTypes[i];
+      for (int i = 0; i < ALL_TYPES.Length; i++)
+      {
+        if (ALL_TYPES[i].type != type)
+          continue;
 
-      for (int i = 0; i < allMaskTypes.Length; i++)
-        if (allMaskTypes[i].Type == type)
-          return allMaskTypes[i];
+        if (ignoreDetails != 0 && ALL_TYPES[i].Details == ignoreDetails)
+          continue;
 
+        return ALL_TYPES[i];
+      }
       return null;
     }
 
-    public static IcnsType FindImageType(int type)
+    public static IcnsType FindType(int width, int height, int bpp, TypeDetails details)
     {
-      for (int i = 0; i < allImageTypes.Length; i++)
-        if (allImageTypes[i].Type == type)
-          return allImageTypes[i];
-
-      return null;
-    }
-
-    public static IcnsType Find8BPPMaskType(IcnsType imageType)
-    {
-      for (int i = 0; i < allMaskTypes.Length; i++)
-        if (allMaskTypes[i].BitsPerPixel == 8 &&
-            allMaskTypes[i].Width == imageType.Width &&
-            allMaskTypes[i].Height == imageType.Height)
-          return allMaskTypes[i];
-
-      return null;
-    }
-
-    public static IcnsType Find1BPPMaskType(IcnsType imageType)
-    {
-      for (int i = 0; i < allMaskTypes.Length; i++)
-        if (allMaskTypes[i].BitsPerPixel == 1 &&
-            allMaskTypes[i].Width == imageType.Width &&
-            allMaskTypes[i].Height == imageType.Height)
-          return allMaskTypes[i];
+      for (int i = 0; i < ALL_TYPES.Length; i++)
+      {
+        IcnsType type = ALL_TYPES[i];
+        if (type.width == width &&
+            type.height == height &&
+            type.bitsPerPixel == bpp &&
+            type.details == details)
+          return type;
+      }
 
       return null;
     }
@@ -160,6 +147,34 @@ namespace BrokenEvent.LibIcns
       bytes[3] = (byte)(0xff & type);
 
       return Encoding.ASCII.GetString(bytes);
+    }
+
+    public enum TypeDetails
+    {
+      /// <summary>
+      /// The default image with no detils.
+      /// </summary>
+      None,
+      /// <summary>
+      /// The image is alpha mask.
+      /// </summary>
+      Mask,
+      /// <summary>
+      /// Has alpha mask.
+      /// </summary>
+      HasMask,
+      /// <summary>
+      /// Whole 4 channels are used.
+      /// </summary>
+      ARGB,
+      /// <summary>
+      /// Compressed, j2k or PNG codec is used.
+      /// </summary>
+      Compressed,
+      /// <summary>
+      /// Retina (2x) image. j2k or PNG is used.
+      /// </summary>
+      Retina,
     }
   }
 }

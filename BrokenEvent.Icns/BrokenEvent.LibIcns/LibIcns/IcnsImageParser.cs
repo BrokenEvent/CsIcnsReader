@@ -31,7 +31,7 @@ namespace BrokenEvent.LibIcns
       stream.WriteByte((byte)((value & 0x000000ff) >> 0));
     }
 
-    class IcnsHeader
+    private class IcnsHeader
     {
       public int magic; // Magic literal (4 bytes), always "icns"
       public int fileSize; // Length of file (4 bytes), in bytes.
@@ -133,17 +133,9 @@ namespace BrokenEvent.LibIcns
 
     public static void WriteImage(Bitmap src, Stream stream)
     {
-      IcnsType imageType;
-      if (src.Width == 16 && src.Height == 16)
-        imageType = IcnsType.ICNS_16x16_32BIT_IMAGE;
-      else if (src.Width == 32 && src.Height == 32)
-        imageType = IcnsType.ICNS_32x32_32BIT_IMAGE;
-      else if (src.Width == 48 && src.Height == 48)
-        imageType = IcnsType.ICNS_48x48_32BIT_IMAGE;
-      else if (src.Width == 128 && src.Height == 128)
-        imageType = IcnsType.ICNS_128x128_32BIT_IMAGE;
-      else
-        throw new NotSupportedException("Invalid/unsupported source width " + src.Width + " and height " + src.Height);
+      IcnsType imageType = IcnsType.FindType(src.Width, src.Height, 32, IcnsType.TypeDetails.None);
+      if (imageType == null)
+        throw new NotSupportedException($"Invalid/unsupported source: {src.Width}x{src.Height}");
 
       Write4Bytes(stream, ICNS_MAGIC);
       Write4Bytes(stream, 4 + 4 + 4 + 4 + 4*imageType.Width*imageType.Height + 4 + 4 + imageType.Width*imageType.Height);
@@ -153,6 +145,7 @@ namespace BrokenEvent.LibIcns
 
       BitmapData bitmapData = src.LockBits(new Rectangle(0, 0, src.Width, src.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
 
+      // the image
       for (int y = 0; y < src.Height; y++)
       {
         for (int x = 0; x < src.Width; x++)
@@ -165,7 +158,8 @@ namespace BrokenEvent.LibIcns
         }
       }
 
-      IcnsType maskType = IcnsType.Find8BPPMaskType(imageType);
+      // mask
+      IcnsType maskType = IcnsType.FindType(src.Width, src.Height, 8, IcnsType.TypeDetails.Mask);
       Write4Bytes(stream, maskType.Type);
       Write4Bytes(stream, 4 + 4 + imageType.Width * imageType.Width);
 
