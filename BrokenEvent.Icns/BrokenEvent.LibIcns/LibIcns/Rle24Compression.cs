@@ -42,7 +42,12 @@
             int count = (0xff & data[dataPos]) + 1;
             dataPos++;
             for (int i = 0; i < count; i++)
-              result[band + 4 * (resultPos++)] = data[dataPos++];
+            {
+              byte value = data[dataPos++];
+              int idx = band + 4 * (resultPos++);
+              if (idx < result.Length)
+                result[idx] = value;
+            }
             remaining -= count;
           }
         }
