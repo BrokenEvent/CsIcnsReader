@@ -33,7 +33,11 @@
           {
             int count = (0xff & data[dataPos]) - 125;
             for (int i = 0; i < count; i++)
-              result[band + 4 * (resultPos++)] = data[dataPos + 1];
+            {
+              int idx = band + 4 * (resultPos++);
+              if (idx < result.Length)
+                result[idx] = data[dataPos + 1];
+            }
             dataPos += 2;
             remaining -= count;
           }
